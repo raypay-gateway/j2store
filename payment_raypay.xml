@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension version="3.0" type="plugin" method="upgrade" group="j2store">
+    <name>RayPay for J2Store</name>
+    <description>RayPay Payment plugin for J2Store</description>
+    <version>2.1.1</version>
+    <author>Developer: hanieh729, Publisher: Saminray</author>
+    <authorUrl>https://saminray.com</authorUrl>
+    <authorEmail>info@saminray.com</authorEmail>
+    <creationDate>June 2021</creationDate>
+    <copyright>Copyright (C) 2021 RayPay</copyright>
+    <license>http://www.gnu.org/licenses/gpl-2.0.html GPLv2 or later</license>
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="user_id" type="text" size="60" label="شناسه کاربری" description="لطفا شناسه کاربری خود را از پنل رای پی دریافت کنید. "/>
+                <field name="acceptor_code" type="text" size="60" label="کد پذیرنده" description="لطفا کد پذیرنده خود را از پنل رای پی دریافت کنید. "/>
+                <field name="currency" type="radio" default="rial" label="واحد پول پیشفرض" class="btn-group" description="واحد پول فروشگاه">
+                    <option value="rial">ریال</option>
+                    <option value="toman">تومان</option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+
+    <updateservers>
+        <server type="extension" priority="1" name="J2Store - RayPay for J2Store">https://raypay.ir/plugins</server>
+    </updateservers>
+
+    <files>
+        <filename plugin="payment_raypay">payment_raypay.php</filename>
+        <folder>payment_raypay</folder>
+    </files>
+</extension>
