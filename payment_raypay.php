@@ -167,11 +167,21 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
                 'comment'      => $desc
             );
 
-            $url  = 'http://185.165.118.211:14000/raypay/api/v1/Payment/getPaymentTokenWithUserID';
-            $options = array('Content-Type' => 'application/json');
-            $result = $this->http->post($url, json_encode($data, true), $options);
-            $result = json_decode($result->body);
-            $http_status = $result->StatusCode;
+            $url  = 'https://api.raypay.ir/raypay/api/v1/Payment/getPaymentTokenWithUserID';
+			$options = array('Content-Type: application/json');
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+			curl_setopt($ch, CURLOPT_HTTPHEADER,$options );
+			$result = curl_exec($ch);
+			$result = json_decode($result );
+			$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+            //$options = array('Content-Type' => 'application/json');
+            //$result = $this->http->post($url, json_encode($data, true), $options);
+            //$result = json_decode($result->body);
+            //$http_status = $result->StatusCode;
 
             if ( $http_status != 200 || empty($result) || empty($result->Data) )
             {
@@ -200,6 +210,7 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
 
             return false;
 
+
         }
     }
 
@@ -208,8 +219,8 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         $vars     = new JObject();
         $app      = JFactory::getApplication();
         $jinput   = $app->input;
-        $invoiceId = $jinput->get->get('?invoiceID', '', 'STRING');;
-        $orderId = $jinput->get->get('order_id', '', 'STRING');;
+        $invoiceId = $jinput->get->get('?invoiceID', '', 'STRING');
+        $orderId = $jinput->get->get('order_id', '', 'STRING');
 
         F0FTable::addIncludePath( JPATH_ADMINISTRATOR . '/components/com_j2store/tables' );
         $orderpayment = F0FTable::getInstance( 'Order', 'J2StoreTable' )
@@ -245,11 +256,21 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
 
 
         $data = array('order_id' => $orderId);
-        $url = 'http://185.165.118.211:14000/raypay/api/v1/Payment/checkInvoice?pInvoiceID=' . $invoiceId;;
-        $options = array('Content-Type' => 'application/json');
-        $result = $this->http->post($url, json_encode($data, true), $options);
-        $result = json_decode($result->body);
-        $http_status = $result->StatusCode;
+        $url = 'https://api.raypay.ir/raypay/api/v1/Payment/checkInvoice?pInvoiceID=' . $invoiceId;
+		$options = array('Content-Type: application/json');
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+		curl_setopt($ch, CURLOPT_HTTPHEADER,$options );
+		$result = curl_exec($ch);
+		$result = json_decode($result );
+		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+        //$options = array('Content-Type' => 'application/json');
+        //$result = $this->http->post($url, json_encode($data, true), $options);
+        //$result = json_decode($result->body);
+        //$http_status = $result->StatusCode;
 
         if ( $http_status != 200 )
         {
