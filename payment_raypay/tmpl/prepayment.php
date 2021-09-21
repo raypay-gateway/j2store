@@ -13,8 +13,6 @@
  */
 defined( '_JEXEC' ) or die( 'Restricted access' );
 ?>
-
-<form method="get" name="adminForm" enctype="multipart/form-data">
     <p>
         <img src="/plugins/j2store/payment_raypay/payment_raypay/logo.png" style="display: inline-block;vertical-align: middle;width: 70px;">
         <?php echo "پرداخت امن با رای پی"; ?>
@@ -25,7 +23,6 @@ defined( '_JEXEC' ) or die( 'Restricted access' );
             <?php echo @$vars->error?>
         </div>
     <?php else:?>
-        <input type="submit" class="j2store_cart_button button btn btn-primary"
-               value="<?php echo 'پرداخت'; ?>"/>
+        <a class="j2store_cart_button button btn btn-primary"
+           href="<?php echo @$vars->link; ?>">  <?php echo 'پرداخت';?></a>
     <?php endif; ?>
-</form>

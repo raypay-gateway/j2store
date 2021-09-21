@@ -15,6 +15,7 @@ defined( '_JEXEC' ) or die( 'Restricted access' );
 
 use Joomla\CMS\Http\Http;
 use Joomla\CMS\Http\HttpFactory;
+use Joomla\CMS\Log\Log;
 
 require_once( JPATH_ADMINISTRATOR . '/components/com_j2store/library/plugins/payment.php' );
 
@@ -101,7 +102,8 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         $vars->button_text         = $this->params->get( 'button_text', 'J2STORE_PLACE_ORDER' );
         $vars->display_name        = 'پرداخت با رای پی';
         $vars->user_id             = $this->params->get( 'user_id', '' );
-        $vars->acceptor_code             = $this->params->get( 'acceptor_code', '' );
+        $vars->marketing_id             = $this->params->get( 'marketing_id', '' );
+        $vars->sandbox             = $this->params->get( 'sandbox', '' );
 
         // Customer information
         $orderinfo = F0FTable::getInstance( 'Orderinfo', 'J2StoreTable' )
@@ -125,9 +127,9 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
                                 ->getClone();
         $orderpayment->load( $data['orderpayment_id'] );
 
-        if ( $vars->user_id == NULL || $vars->user_id == '' || $vars->acceptor_code == NULL || $vars->acceptor_code == '' )
+        if ( $vars->user_id == NULL || $vars->user_id == '' || $vars->marketing_id == NULL || $vars->marketing_id == '' )
         {
-            $msg         = 'لطفا شناسه کاربری و کد پذیرنده را برای افزونه رای پی تنظیم نمایید .';
+            $msg         = 'لطفا شناسه کاربری و شناسه کسب و کار را برای افزونه رای پی تنظیم نمایید .';
             $vars->error = $msg;
             $orderpayment->add_history( $msg );
             $orderpayment->store();
@@ -137,11 +139,13 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         else
         {
             $user_id = $vars->user_id;
-            $acceptor_code = $vars->acceptor_code;
+            $marketing_id = $vars->marketing_id;
+            $sandbox = !($vars->sandbox == 'no');
+            //$sandbox = !($this->params->get('sandbox', '') == 'no');
 
             $amount   = round( $vars->orderpayment_amount, 0 );
             $desc     = ' خرید از فروشگاه چی 2 استور با شماره سفارش  ' . $vars->order_id;
-            $callback = JRoute::_( JURI::root() . "index.php?option=com_j2store&view=checkout" ) . '&orderpayment_type=' . $vars->orderpayment_type  . '&order_id=' . $data['orderpayment_id'] . '&task=confirmPayment&';
+            $callback = JRoute::_( JURI::root() . "index.php?option=com_j2store&view=checkout" ) . '&orderpayment_type=' . $vars->orderpayment_type  . '&order_id=' . $data['orderpayment_id'] . '&task=confirmPayment';
             $invoice_id             = round(microtime(true) * 1000);
 
             if ( empty( $amount ) )
@@ -160,14 +164,15 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
                 'userID'       => $user_id,
                 'redirectUrl'  => $callback,
                 'factorNumber' => strval($data['orderpayment_id']),
-                'acceptorCode' => $acceptor_code,
+                'marketingID' => $marketing_id,
                 'email'        => $mail,
                 'mobile'       => $phone,
                 'fullName'     => $name,
-                'comment'      => $desc
+                'comment'      => $desc,
+                'enableSandBox'      => $sandbox
             );
 
-            $url  = 'https://api.raypay.ir/raypay/api/v1/Payment/getPaymentTokenWithUserID';
+            $url  = 'https://api.raypay.ir/raypay/api/v1/Payment/pay';
 			$options = array('Content-Type: application/json');
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $url);
@@ -178,15 +183,15 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
 			$result = json_decode($result );
 			$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 			curl_close($ch);
-            //$options = array('Content-Type' => 'application/json');
-            //$result = $this->http->post($url, json_encode($data, true), $options);
-            //$result = json_decode($result->body);
-            //$http_status = $result->StatusCode;
+//            $result = $this->http->post($url, json_encode($data, true), $options);
+//            $result = json_decode($result->body);
+//            $http_status = $result->StatusCode;
 
             if ( $http_status != 200 || empty($result) || empty($result->Data) )
             {
                 $msg         = sprintf('خطا هنگام ایجاد تراکنش. کد خطا: %s - پیام خطا: %s', $http_status, $result->Message);
                 $vars->error = $msg;
+                $vars->data = json_encode($data);
                 $orderpayment->add_history( $msg );
                 $orderpayment->store();
 
@@ -198,19 +203,10 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
             $orderpayment->store();
 
 
-            $access_token = $result->Data->Accesstoken;
-            $terminal_id  = $result->Data->TerminalID;
-
-            echo '<p style="color:#ff0000; font:18px Tahoma; direction:rtl;">در حال اتصال به درگاه بانکی. لطفا صبر کنید ...</p>';
-            echo '<form name="frmRayPayPayment" method="post" action=" https://mabna.shaparak.ir:8080/Pay ">';
-            echo '<input type="hidden" name="TerminalID" value="' . $terminal_id . '" />';
-            echo '<input type="hidden" name="token" value="' . $access_token . '" />';
-            echo '<input class="submit" type="submit" value="پرداخت" /></form>';
-            echo '<script>document.frmRayPayPayment.submit();</script>';
-
-            return false;
-
-
+            $token = $result->Data;
+            $link='https://my.raypay.ir/ipg?token=' . $token;
+            $vars->link = $link;
+            return $this->_getLayout( 'prepayment', $vars );
         }
     }
 
@@ -219,14 +215,14 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         $vars     = new JObject();
         $app      = JFactory::getApplication();
         $jinput   = $app->input;
-        $invoiceId = $jinput->get->get('?invoiceID', '', 'STRING');
+      ////////////////////////////////  $invoiceId = $jinput->get->get('?invoiceID', '', 'STRING');
         $orderId = $jinput->get->get('order_id', '', 'STRING');
 
         F0FTable::addIncludePath( JPATH_ADMINISTRATOR . '/components/com_j2store/tables' );
         $orderpayment = F0FTable::getInstance( 'Order', 'J2StoreTable' )
                                 ->getClone();
 
-        if ( empty( $invoiceId ) || empty( $orderId ) )
+        if ( empty( $orderId ) )
         {
             $app->enqueueMessage( 'خطا هنگام بازگشت از درگاه پرداخت', 'Error' );
             $vars->message = 'خطا هنگام بازگشت از درگاه پرداخت';
@@ -254,13 +250,12 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         $orderpayment->transaction_details = json_encode( $payment_details );
         $orderpayment->store();
 
-
-        $data = array('order_id' => $orderId);
-        $url = 'https://api.raypay.ir/raypay/api/v1/Payment/checkInvoice?pInvoiceID=' . $invoiceId;
+        $url = 'https://api.raypay.ir/raypay/api/v1/Payment/verify';
 		$options = array('Content-Type: application/json');
+
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($_POST));
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 		curl_setopt($ch, CURLOPT_HTTPHEADER,$options );
 		$result = curl_exec($ch);
@@ -285,8 +280,9 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
             return $this->return_result( $vars );
         }
 
-        $state           = $result->Data->State;
+        $state           = $result->Data->Status;
         $verify_order_id = $result->Data->FactorNumber;
+        $verify_invoice_id = $result->Data->InvoiceID;
         $verify_amount   = $result->Data->Amount;
 
         if ($state === 1)
@@ -304,7 +300,7 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         if ( empty($verify_order_id) || empty($verify_amount) || $state !== 1 )
         {
 
-            $msg  = 'پرداخت ناموفق بوده است. شناسه ارجاع بانکی رای پی : ' . $invoiceId;
+            $msg  = 'پرداخت ناموفق بوده است. شناسه ارجاع بانکی رای پی : ' . $verify_invoice_id;
             $orderpayment->add_history($msg);
             $app->enqueueMessage( $verify_status, 'Error' );
             // Set transaction status to 'Failed'
