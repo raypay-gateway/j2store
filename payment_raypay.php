@@ -215,7 +215,6 @@ class plgJ2StorePayment_raypay extends J2StorePaymentPlugin {
         $vars     = new JObject();
         $app      = JFactory::getApplication();
         $jinput   = $app->input;
-      ////////////////////////////////  $invoiceId = $jinput->get->get('?invoiceID', '', 'STRING');
         $orderId = $jinput->get->get('order_id', '', 'STRING');
 
         F0FTable::addIncludePath( JPATH_ADMINISTRATOR . '/components/com_j2store/tables' );
